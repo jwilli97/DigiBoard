@@ -20,10 +20,10 @@ const INSTANT_OPTIONS: SlotOptions = {
 const FLAP_ORDER = SUPPORTED_CHARS;
 
 /** Base number of glyphs to flip through before landing, plus random variance. */
-const FLAP_BASE_SPINS = 10;
-const FLAP_SPIN_VARIANCE = 6;
+export const FLAP_BASE_SPINS = 10;
+export const FLAP_SPIN_VARIANCE = 6;
 /** Time between successive flaps, in ms. */
-const FLAP_INTERVAL = 90;
+export const FLAP_INTERVAL = 90;
 
 /**
  * Build the glyphs to roll through, stepping forward along the wheel from `from`
