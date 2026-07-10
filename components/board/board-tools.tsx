@@ -6,15 +6,17 @@ import {
   Copy,
   Dices,
   Moon,
+  Presentation,
   Shuffle,
   Sun,
   Trash2,
   Volume2,
   VolumeX,
 } from "lucide-react";
+import Link from "next/link";
 import { useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { BoardTheme } from "@/lib/board";
 import { isSpecialBit } from "@/lib/cells";
 import type { ActiveMessage } from "@/lib/layout";
@@ -113,6 +115,17 @@ export function BoardTools({
         </Button>
 
         <div className="ml-auto flex items-center gap-2">
+          <Link
+            href="/present"
+            className={buttonVariants({
+              size: "sm",
+              variant: "ghost",
+              className: "text-white/70 hover:bg-white/10 hover:text-white",
+            })}
+          >
+            <Presentation />
+            Present
+          </Link>
           <Button
             type="button"
             size="icon-sm"

@@ -16,6 +16,14 @@ export interface BoardAnimation {
   staggerStep?: number;
 }
 
+// Glyph size tracks the board's own width (cqw), not the viewport, so the
+// board still renders correctly when it's sized by height (e.g. /present on a
+// wide screen). Scaled per column count to keep a glyph ≈60% of a cell.
+const FONT_SCALE = 59;
+
+/** Default ms per diagonal step — also used to time the click sound (useFlutter). */
+export const DEFAULT_STAGGER_STEP = 18;
+
 const DEFAULT_ANIMATION: Required<BoardAnimation> = {
   options: {
     direction: "down",
@@ -25,7 +33,7 @@ const DEFAULT_ANIMATION: Required<BoardAnimation> = {
     exitOffset: 36,
     bounce: 0.35,
   },
-  staggerStep: 18,
+  staggerStep: DEFAULT_STAGGER_STEP,
 };
 
 /** Map a cell to assistive-tech text (naming color chips, blanking fillers). */
@@ -69,7 +77,8 @@ export const Board = memo(function Board({
     <div
       className={cn(
         // Matte black frame with a faint top bevel highlight and a deep drop.
-        "rounded-2xl bg-neutral-950 p-2.5 ring-1 ring-white/5 sm:p-4",
+        // Also the size container that cell glyphs scale against.
+        "@container rounded-2xl bg-neutral-950 p-2.5 ring-1 ring-white/5 sm:p-4",
         "shadow-[0_25px_70px_-20px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.06)]",
         className,
       )}
@@ -88,6 +97,7 @@ export const Board = memo(function Board({
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+          fontSize: `${(FONT_SCALE / columns).toFixed(2)}cqw`,
         }}
       >
         {Array.from({ length: rows }, (_, row) =>

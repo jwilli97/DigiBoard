@@ -23,3 +23,17 @@ const SUPPORTED_SET = new Set(SUPPORTED_CHARS);
 export function isSupportedChar(char: string): boolean {
   return SUPPORTED_SET.has(char);
 }
+
+/**
+ * Steps between two glyphs along the flap wheel, in the shorter direction.
+ * Distance 1 means a single flap reaches the target (a clock minute ticking
+ * 5 → 6); Infinity when either glyph isn't on the wheel.
+ */
+export function wheelDistance(from: string, to: string): number {
+  const length = SUPPORTED_CHARS.length;
+  const start = SUPPORTED_CHARS.indexOf(from);
+  const end = SUPPORTED_CHARS.indexOf(to);
+  if (start < 0 || end < 0) return Number.POSITIVE_INFINITY;
+  const forward = (end - start + length) % length;
+  return Math.min(forward, length - forward);
+}

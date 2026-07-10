@@ -4,7 +4,7 @@ import type { SlotOptions } from "slot-text";
 import { ColorChipBit } from "@/components/board/color-chip-bit";
 import { SlotTextBit } from "@/components/board/slot-text-bit";
 import type { BoardTheme } from "@/lib/board";
-import { colorChipForChar, isBlankBit } from "@/lib/cells";
+import { colorChipForChar, isBlankBit, isColorChip } from "@/lib/cells";
 import { isSupportedChar } from "@/lib/charset";
 import { cn } from "@/lib/utils";
 
@@ -55,20 +55,21 @@ export const Bit = memo(function Bit({
   const chip = colorChipForChar(value);
   const face = FACE[theme];
 
-  // Retrigger the chip roll whenever the cell newly becomes (or switches) a
-  // color chip, carrying the glyph it was showing so the roll continues from
-  // there. Stays at 0 on first mount so existing chips don't roll in.
+  // Retrigger a fresh roll whenever the cell crosses the chip/text boundary
+  // (either direction, or switches chips), carrying the glyph it was showing so
+  // the roll continues from there. Text-to-text changes roll inside a mounted
+  // SlotTextBit instead. Stays at 0 on first mount so the board doesn't roll in.
   const prevValue = useRef(value);
-  const [chipFlip, setChipFlip] = useState<{ token: number; from: string }>({
+  const [flip, setFlip] = useState<{ token: number; from: string }>({
     token: 0,
     from: " ",
   });
   useEffect(() => {
     const prev = prevValue.current;
     prevValue.current = value;
-    if (prev !== value && chip) {
-      setChipFlip((flip) => ({
-        token: flip.token + 1,
+    if (prev !== value && (chip || isColorChip(prev))) {
+      setFlip((current) => ({
+        token: current.token + 1,
         from: isSupportedChar(prev) ? prev : " ",
       }));
     }
@@ -76,7 +77,6 @@ export const Bit = memo(function Bit({
 
   return (
     <div
-      aria-label={chip ? `${chip.label} chip` : undefined}
       className={cn(
         "relative flex aspect-square w-full items-center justify-center overflow-hidden",
         // Split-flap face with a beveled edge and a soft drop. Text tiles follow
@@ -87,24 +87,27 @@ export const Bit = memo(function Bit({
         // Hairline seam across the middle, evoking the flap fold.
         "after:pointer-events-none after:absolute after:inset-x-0 after:top-1/2 after:h-px after:-translate-y-1/2 after:content-['']",
         face.seam,
+        // Font size is inherited from the board grid, which scales it to the
+        // board's own width via container-query units.
         "select-none font-mono uppercase leading-none",
-        "text-[clamp(0.5rem,2.2vw,1.5rem)]",
         className,
       )}
     >
       {chip ? (
         <ColorChipBit
-          key={chipFlip.token}
+          key={flip.token}
           color={chip.color}
-          fromGlyph={chipFlip.from}
+          fromGlyph={flip.from}
           delay={delay}
           options={options}
           instant={instant}
-          flipToken={chipFlip.token}
+          flipToken={flip.token}
         />
       ) : (
         <SlotTextBit
+          key={flip.token}
           value={isBlankBit(value) ? " " : value}
+          fromGlyph={flip.token === 0 ? undefined : flip.from}
           delay={delay}
           options={options}
           instant={instant}

@@ -24,6 +24,14 @@ export interface ActiveMessage {
   vAlign: VerticalAlign;
 }
 
+/** What the board shows before anything has been activated. */
+export const DEFAULT_MESSAGE: ActiveMessage = {
+  text: "HELLO WORLD",
+  align: "left",
+  blockAlign: "left",
+  vAlign: "top",
+};
+
 export interface LayoutOptions {
   /** How each line aligns within the text block. */
   align?: HorizontalAlign;
@@ -235,4 +243,18 @@ export function layoutText(text: string, options: LayoutOptions = {}): LayoutRes
     usedCells,
     totalCells: rows * columns,
   };
+}
+
+/** Lay an active message onto a board of the given dimensions. */
+export function layoutMessage(
+  message: ActiveMessage,
+  size: { rows: number; columns: number },
+): LayoutResult {
+  return layoutText(message.text, {
+    align: message.align,
+    blockAlign: message.blockAlign,
+    vAlign: message.vAlign,
+    rows: size.rows,
+    columns: size.columns,
+  });
 }

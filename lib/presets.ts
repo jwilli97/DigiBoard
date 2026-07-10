@@ -2,7 +2,7 @@
 
 import { DIGITS, LETTERS } from "@/lib/charset";
 import { COLOR_CHIPS } from "@/lib/cells";
-import type { HorizontalAlign, VerticalAlign } from "@/lib/layout";
+import type { ActiveMessage, HorizontalAlign, VerticalAlign } from "@/lib/layout";
 
 export interface Preset {
   id: string;
@@ -65,6 +65,16 @@ export const PRESETS: Preset[] = [
     vAlign: "middle",
   },
 ];
+
+/** A preset as an activatable message, with unspecified positions defaulted. */
+export function presetMessage(preset: Preset): ActiveMessage {
+  return {
+    text: preset.text,
+    align: preset.align ?? "left",
+    blockAlign: preset.blockAlign ?? "left",
+    vAlign: preset.vAlign ?? "top",
+  };
+}
 
 const RANDOM_GLYPHS = LETTERS + DIGITS;
 
