@@ -24,6 +24,16 @@ export interface ActiveMessage {
   vAlign: VerticalAlign;
 }
 
+/** True when two messages have the same text and positioning. */
+export function messagesEqual(a: ActiveMessage, b: ActiveMessage): boolean {
+  return (
+    a.text === b.text &&
+    a.align === b.align &&
+    a.blockAlign === b.blockAlign &&
+    a.vAlign === b.vAlign
+  );
+}
+
 /** What the board shows before anything has been activated. */
 export const DEFAULT_MESSAGE: ActiveMessage = {
   text: "HELLO WORLD",

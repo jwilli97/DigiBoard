@@ -14,12 +14,13 @@ import {
   DEFAULT_MESSAGE,
   layoutMessage,
   layoutText,
+  messagesEqual,
   type ActiveMessage,
   type HorizontalAlign,
   type VerticalAlign,
 } from "@/lib/layout";
 import { PRESETS, presetMessage, randomBoardText, type Preset } from "@/lib/presets";
-import { DEFAULT_PROGRAM, type Program } from "@/lib/programs";
+import { DEFAULT_PROGRAM, renderProgram, type Program } from "@/lib/programs";
 import { STORAGE_KEYS } from "@/lib/storage";
 
 const EMPTY_HISTORY: ActiveMessage[] = [];
@@ -62,8 +63,11 @@ export default function Home() {
 
   function remember(message: ActiveMessage) {
     if (!message.text.trim()) return;
-    setHistory(
-      [message, ...history.filter((item) => item.text !== message.text)].slice(0, HISTORY_LIMIT),
+    setHistory((previous) =>
+      [message, ...previous.filter((item) => !messagesEqual(item, message))].slice(
+        0,
+        HISTORY_LIMIT,
+      ),
     );
   }
 
@@ -73,8 +77,10 @@ export default function Home() {
   }
 
   // Freeze the board on whatever the live program is showing right now.
+  // Rendered directly (not via the hook's `message`) so stopping in the instant
+  // before the program's first tick doesn't freeze the pre-mount blank board.
   function stopProgram() {
-    setProgram({ kind: "message", message });
+    setProgram({ kind: "message", message: renderProgram(program, Date.now()) });
   }
 
   // Load a message into the composer and activate it in one step.

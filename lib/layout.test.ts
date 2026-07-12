@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BoardState } from "@/lib/board";
 import { BLANK_BIT, COLOR_CHIPS } from "@/lib/cells";
-import { layoutText } from "@/lib/layout";
+import { layoutText, messagesEqual, type ActiveMessage } from "@/lib/layout";
 
 const RED = COLOR_CHIPS.find((c) => c.id === "red")!.char;
 
@@ -146,5 +146,19 @@ describe("special bits", () => {
     expect(board.cells[1]).toBe(BLANK_BIT);
     expect(board.cells[0]).toBe("A");
     expect(board.cells[2]).toBe("B");
+  });
+});
+
+describe("messagesEqual", () => {
+  const base: ActiveMessage = { text: "HI", align: "left", blockAlign: "left", vAlign: "top" };
+
+  it("matches identical messages", () => {
+    expect(messagesEqual(base, { ...base })).toBe(true);
+  });
+
+  it("distinguishes same text with different positioning", () => {
+    expect(messagesEqual(base, { ...base, align: "center" })).toBe(false);
+    expect(messagesEqual(base, { ...base, blockAlign: "right" })).toBe(false);
+    expect(messagesEqual(base, { ...base, vAlign: "middle" })).toBe(false);
   });
 });

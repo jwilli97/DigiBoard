@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Digiboard
 
-## Getting Started
+A digital split-flap message board inspired by [Vestaboard](https://www.vestaboard.com/). Compose a message, hit Activate, and watch each character roll into place with a mechanical flutter — optionally with sound.
 
-First, run the development server:
+## Features
+
+- **Fixed-grid board** — flagship 6×22 or note 3×15, with light and dark tile themes.
+- **Composer** — draft messages with line/block/vertical alignment, color chips, symbols, and blank bits; the board only changes when you activate.
+- **Split-flap animation** — each changed cell rolls through intermediate glyphs with a diagonal stagger; adjacent-glyph changes (a clock ticking over) advance with a single flap. Respects reduced motion.
+- **Live programs** — clock, countdown, and preset rotation, rendered as pure functions of time so every tab shows the same thing at the same moment.
+- **Presentation mode** — `/present` shows just the board scaled to the viewport, holds a screen wake lock, auto-hides chrome, and mirrors whatever the composer tab activates (state syncs via localStorage).
+- **Extras** — presets, message history, shuffle test, copy-as-JSON, synthesized mechanical sound (no audio assets).
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) for the composer, or [http://localhost:3000/present](http://localhost:3000/present) for a full-screen sign.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm test        # vitest unit tests
+pnpm lint        # eslint
+pnpm build       # production build
+```
 
-## Learn More
+## Structure
 
-To learn more about Next.js, take a look at the following resources:
+- `lib/` — pure, tested logic: board model, text layout engine, character set, special cells, programs, sound synthesis.
+- `components/board/` — the rendering layer: board grid, per-cell flap animation, composer, tools, and hooks.
+- `plans/` — the design plans this was built from.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Built with Next.js, React, Tailwind, and [slot-text](https://www.npmjs.com/package/slot-text).

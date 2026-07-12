@@ -2,12 +2,28 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 const LOCAL_EVENT = "digiboard:local-storage";
 
+/** Parse a stored raw string, falling back to `initial` when absent or invalid. */
+function parseStored<T>(raw: string | null, initial: T): T {
+  if (raw === null) return initial;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return initial;
+  }
+}
+
 /**
  * A localStorage-backed value that stays in sync across tabs and components.
  * Built on useSyncExternalStore so it avoids setState-in-effect and hydrates
  * cleanly (server renders the fallback, client swaps to the stored value).
+ * The setter also accepts an updater function, which reads the stored value at
+ * call time — use it for read-modify-write updates so successive calls in the
+ * same render don't clobber each other.
  */
-export function useLocalStorage<T>(key: string, initial: T): [T, (value: T) => void] {
+export function useLocalStorage<T>(
+  key: string,
+  initial: T,
+): [T, (value: T | ((previous: T) => T)) => void] {
   const subscribe = useCallback(
     (onChange: () => void) => {
       const handler = (event: Event) => {
@@ -34,25 +50,22 @@ export function useLocalStorage<T>(key: string, initial: T): [T, (value: T) => v
 
   const raw = useSyncExternalStore(subscribe, getSnapshot, () => null);
 
-  const value = useMemo<T>(() => {
-    if (raw === null) return initial;
-    try {
-      return JSON.parse(raw) as T;
-    } catch {
-      return initial;
-    }
-  }, [raw, initial]);
+  const value = useMemo<T>(() => parseStored(raw, initial), [raw, initial]);
 
   const setValue = useCallback(
-    (next: T) => {
+    (next: T | ((previous: T) => T)) => {
       try {
-        localStorage.setItem(key, JSON.stringify(next));
+        const resolved =
+          typeof next === "function"
+            ? (next as (previous: T) => T)(parseStored(localStorage.getItem(key), initial))
+            : next;
+        localStorage.setItem(key, JSON.stringify(resolved));
         window.dispatchEvent(new Event(LOCAL_EVENT));
       } catch {
         // Ignore quota / unavailable storage.
       }
     },
-    [key],
+    [key, initial],
   );
 
   return [value, setValue];
