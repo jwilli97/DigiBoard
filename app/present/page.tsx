@@ -2,6 +2,7 @@
 
 import { Maximize, Minimize, PencilLine } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { Board } from "@/components/board/board";
@@ -96,6 +97,7 @@ function toggleFullscreen() {
  * page, so activating a message in another tab flips this sign.
  */
 export default function Present() {
+  const router = useRouter();
   const [program] = useLocalStorage<Program>(STORAGE_KEYS.program, DEFAULT_PROGRAM);
   const [sizeKey] = useLocalStorage<BoardSizeKey>(STORAGE_KEYS.size, "flagship");
   const [theme] = useLocalStorage<BoardTheme>(STORAGE_KEYS.theme, "light");
@@ -133,11 +135,17 @@ export default function Present() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      // The browser owns the first Escape while fullscreen; once windowed, a
+      // subsequent Escape leaves presentation mode and returns to composing.
+      if (event.key === "Escape") {
+        if (!document.fullscreenElement) router.push("/");
+        return;
+      }
       if (event.key === "f" || event.key === "F") toggleFullscreen();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [router]);
 
   return (
     <main
@@ -174,6 +182,7 @@ export default function Present() {
         >
           <PencilLine />
           Composer
+          <span className="text-white/30">Esc</span>
         </Link>
         <Button
           type="button"

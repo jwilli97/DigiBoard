@@ -50,7 +50,7 @@ const V_ALIGN_OPTIONS: SegmentOption<VerticalAlign>[] = [
  * Drafting controls for the board: one framed card holding the message and its
  * special-bit toolbar, then a single action row where Activate is the star.
  * Typing only updates local draft state — the board is not touched until
- * Activate is pressed (or Enter on a single line).
+ * Activate or Enter is pressed; Shift+Enter inserts a newline.
  */
 export function Composer({
   draft,
@@ -66,7 +66,6 @@ export function Composer({
 }: ComposerProps) {
   const textareaId = useId();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isSingleLine = !draft.includes("\n");
 
   // Insert a bit at the caret (or replacing the current selection), then restore
   // focus and place the caret just after the inserted bit.
@@ -102,9 +101,9 @@ export function Composer({
           value={draft}
           onChange={(event) => onDraftChange(event.target.value)}
           onKeyDown={(event) => {
-            // Enter activates a single-line draft; multi-line drafts keep Enter
-            // as a newline. Shift+Enter always inserts a newline.
-            if (event.key === "Enter" && !event.shiftKey && isSingleLine) {
+            // Enter is the fast path to the board; preserve Shift+Enter for
+            // deliberately composing a multi-line message.
+            if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
               if (canActivate) onActivate();
             }
@@ -209,6 +208,7 @@ export function Composer({
           >
             <Send />
             Activate
+            <span className="text-black/45">Enter</span>
           </Button>
         </div>
       </div>
