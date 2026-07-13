@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { Board } from "@/components/board/board";
 import { BoardTools } from "@/components/board/board-tools";
 import { Composer } from "@/components/board/composer";
-import { ProgramTools } from "@/components/board/program-tools";
 import { useFlutter } from "@/components/board/use-flutter";
 import { useLocalStorage } from "@/components/board/use-local-storage";
 import { useProgramMessage } from "@/components/board/use-program-message";
@@ -126,14 +125,15 @@ export default function Home() {
         <Composer
           draft={draft}
           onDraftChange={setDraft}
-          align={align}
-          onAlignChange={setAlign}
-          blockAlign={blockAlign}
-          onBlockAlignChange={setBlockAlign}
+          align={blockAlign}
+          onAlignChange={(value) => {
+            // One "Align" control drives both line alignment and block
+            // position; presets/history can still carry them independently.
+            setAlign(value);
+            setBlockAlign(value);
+          }}
           vAlign={vAlign}
           onVAlignChange={setVAlign}
-          sizeKey={sizeKey}
-          onSizeChange={setSizeKey}
           onActivate={() => commit({ text: draft, align, blockAlign, vAlign })}
           onClear={() => setDraft("")}
           canActivate={canActivate}
@@ -144,6 +144,8 @@ export default function Home() {
           onRandom={() => loadPreset(PRESETS[Math.floor(Math.random() * PRESETS.length)])}
           onShuffle={shuffle}
           onCopyJson={copyJson}
+          sizeKey={sizeKey}
+          onSizeChange={setSizeKey}
           theme={theme}
           onToggleTheme={() => setTheme(theme === "light" ? "dark" : "light")}
           soundOn={soundOn}
@@ -151,8 +153,10 @@ export default function Home() {
           history={history}
           onLoadHistory={applyMessage}
           onClearHistory={() => setHistory(EMPTY_HISTORY)}
+          program={program}
+          onActivateProgram={setProgram}
+          onStopProgram={stopProgram}
         />
-        <ProgramTools program={program} onActivate={setProgram} onStop={stopProgram} />
       </main>
     </div>
   );
