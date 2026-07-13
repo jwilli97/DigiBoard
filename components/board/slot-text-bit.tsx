@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SlotOptions } from "slot-text";
 import { SlotText } from "slot-text/react";
 
@@ -64,7 +64,8 @@ interface SlotTextBitProps {
 export function SlotTextBit({ value, fromGlyph, delay = 0, options, instant }: SlotTextBitProps) {
   // Mounting with fromGlyph ≠ value leaves the roll effect below to bridge the
   // gap, so a remounted cell (chip → text) rolls in like any other change.
-  const [shown, setShown] = useState(fromGlyph ?? value);
+  // `landing` marks the final glyph of a roll, which gets the full settle.
+  const [flap, setFlap] = useState({ glyph: fromGlyph ?? value, landing: true });
   // Tracks what's currently on screen without retriggering the roll effect.
   const shownRef = useRef(fromGlyph ?? value);
 
@@ -87,7 +88,7 @@ export function SlotTextBit({ value, fromGlyph, delay = 0, options, instant }: S
     const tick = () => {
       if (cancelled) return;
       shownRef.current = sequence[step];
-      setShown(sequence[step]);
+      setFlap({ glyph: sequence[step], landing: step === sequence.length - 1 });
       step += 1;
       if (step < sequence.length) timer = setTimeout(tick, FLAP_INTERVAL);
     };
@@ -100,10 +101,18 @@ export function SlotTextBit({ value, fromGlyph, delay = 0, options, instant }: S
     };
   }, [value, delay, instant]);
 
+  // Mid-roll flaps must finish inside the flap interval and shouldn't bounce —
+  // otherwise every flap interrupts the previous animation mid-settle and the
+  // roll looks jittery. Only the landing glyph gets the longer, bouncy settle.
+  const rollOptions = useMemo<SlotOptions>(
+    () => ({ ...options, duration: FLAP_INTERVAL, bounce: 0 }),
+    [options],
+  );
+
   return (
     <SlotText
-      text={instant ? value : shown}
-      options={instant ? INSTANT_OPTIONS : options}
+      text={instant ? value : flap.glyph}
+      options={instant ? INSTANT_OPTIONS : flap.landing ? options : rollOptions}
       className="font-mono leading-none"
     />
   );

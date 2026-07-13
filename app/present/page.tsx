@@ -2,7 +2,7 @@
 
 import { Maximize, Minimize, PencilLine } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { Board } from "@/components/board/board";
 import { useFlutter } from "@/components/board/use-flutter";
@@ -17,6 +17,9 @@ import { cn } from "@/lib/utils";
 
 /** Chrome and cursor hide after this much pointer/key inactivity. */
 const IDLE_MS = 3000;
+
+/** No-op store subscription for the hydration flag below. */
+const emptySubscribe = () => () => {};
 
 /**
  * Hold a screen wake lock while the sign is visible, so a mounted display
@@ -102,9 +105,20 @@ export default function Present() {
   const message = useProgramMessage(program);
   const board = useMemo(() => layoutMessage(message, size).board, [message, size]);
 
+  // The board renders only once hydration has swapped in the stored
+  // program/size/theme (the same render pass flips this flag), so a hard load
+  // fades in already showing the right content instead of flashing the
+  // server-rendered defaults and then re-rolling every cell.
+  const hydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+
   // Changes arrive from other tabs or program ticks; sound follows the shared
   // toggle, with the same only-when-flaps-move rule as the composer page.
-  useFlutter(board, soundOn);
+  // Sound stays inert until the board is actually displayed.
+  useFlutter(board, soundOn, hydrated);
 
   useWakeLock();
   const idle = useIdle(IDLE_MS);
@@ -135,10 +149,13 @@ export default function Present() {
       {/* Width-constrained by default; the dvh cap takes over on screens wider
           than the board's aspect ratio so it always fits the viewport. */}
       <div
-        className="w-full"
+        className={cn(
+          "w-full transition-opacity duration-700",
+          hydrated ? "opacity-100" : "opacity-0",
+        )}
         style={{ maxWidth: `${((90 * size.columns) / size.rows).toFixed(0)}dvh` }}
       >
-        <Board state={board} theme={theme} className="w-full" />
+        {hydrated && <Board state={board} theme={theme} className="w-full" />}
       </div>
 
       <div

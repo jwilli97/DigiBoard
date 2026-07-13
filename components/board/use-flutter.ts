@@ -36,18 +36,22 @@ function firstChangeDelay(prev: BoardState, next: BoardState): number {
  * from a local activation, another tab, or a program tick. Changes made
  * entirely of adjacent-glyph ticks get a single click, matching their
  * single-flap animation; anything bigger gets the full flutter. The first
- * render seeds the comparison, so mounting is silent.
+ * board seen while `active` seeds the comparison, so mounting is silent —
+ * pass `active: false` while the board isn't displayed yet (e.g. /present
+ * before hydration) so pre-display boards can't trigger phantom sounds.
  */
-export function useFlutter(board: BoardState, enabled: boolean) {
-  const prev = useRef(board);
+export function useFlutter(board: BoardState, enabled: boolean, active = true) {
+  const prev = useRef<BoardState | null>(null);
 
   useEffect(() => {
     unlockSound();
   }, []);
 
   useEffect(() => {
+    if (!active) return;
     const previous = prev.current;
     prev.current = board;
+    if (previous === null) return;
     // Hidden tabs stay silent: browsers throttle their timers, so a background
     // clock jumps several minutes at once and would play a phantom flutter —
     // and with a composer and a /present tab open, every change would sound
@@ -58,5 +62,5 @@ export function useFlutter(board: BoardState, enabled: boolean) {
       return;
     }
     playFlutter();
-  }, [board, enabled]);
+  }, [board, enabled, active]);
 }
