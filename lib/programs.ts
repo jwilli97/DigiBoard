@@ -12,7 +12,25 @@ export type Program =
   | { kind: "clock"; format: "12h" | "24h" }
   /** Counts down to `target` (a datetime-local string, parsed as local time). */
   | { kind: "countdown"; target: string; label?: string }
-  | { kind: "rotation"; messages: ActiveMessage[]; intervalSeconds: number };
+  | { kind: "rotation"; messages: ActiveMessage[]; intervalSeconds: number }
+  /**
+   * Preloaded scenes stepped manually (arrow keys in presentation mode) and/or
+   * on a timer. Unlike rotation's epoch grid, position is anchored: the scene
+   * at `index` shows at `advancedAt`, and auto-advance (when `intervalSeconds`
+   * is set) derives from time elapsed since that anchor. Manual steps write a
+   * re-anchored program, so rendering stays a pure function of (program, now)
+   * and every tab shows the same scene.
+   */
+  | {
+      kind: "sequence";
+      scenes: ActiveMessage[];
+      index: number;
+      advancedAt: number;
+      intervalSeconds?: number;
+    };
+
+/** A sequence program's kind narrowed out, for step/render helpers. */
+export type SequenceProgram = Extract<Program, { kind: "sequence" }>;
 
 export const DEFAULT_PROGRAM: Program = { kind: "message", message: DEFAULT_MESSAGE };
 
@@ -77,6 +95,37 @@ function rotationMessage(
   return messages[Math.floor(now / interval) % messages.length];
 }
 
+/** Euclidean modulo, so stepping backwards from scene 0 wraps to the end. */
+function wrap(value: number, length: number): number {
+  return ((value % length) + length) % length;
+}
+
+/** The scene a sequence shows at instant `now`. */
+export function sequenceIndex(program: SequenceProgram, now: number): number {
+  if (program.scenes.length === 0) return 0;
+  // Clamp elapsed at 0 so a tab whose clock trails the anchor (or a re-anchor
+  // racing a render) never computes a negative position.
+  const elapsed =
+    program.intervalSeconds === undefined
+      ? 0
+      : Math.floor(Math.max(0, now - program.advancedAt) / (Math.max(1, program.intervalSeconds) * 1000));
+  return wrap(program.index + elapsed, program.scenes.length);
+}
+
+/**
+ * The sequence re-anchored one scene forward or back from what it currently
+ * shows. Anchoring at `now` also restarts the auto-advance hold, so a manual
+ * step always displays for a full interval.
+ */
+export function stepSequence(program: SequenceProgram, direction: 1 | -1, now: number): SequenceProgram {
+  if (program.scenes.length === 0) return program;
+  return {
+    ...program,
+    index: wrap(sequenceIndex(program, now) + direction, program.scenes.length),
+    advancedAt: now,
+  };
+}
+
 /** The message a program shows at instant `now` (ms since epoch). */
 export function renderProgram(program: Program, now: number): ActiveMessage {
   switch (program.kind) {
@@ -88,6 +137,9 @@ export function renderProgram(program: Program, now: number): ActiveMessage {
       return countdownMessage(program.target, program.label, now);
     case "rotation":
       return rotationMessage(program.messages, program.intervalSeconds, now);
+    case "sequence":
+      if (program.scenes.length === 0) return { text: "", ...CENTERED };
+      return program.scenes[sequenceIndex(program, now)];
   }
 }
 
@@ -115,5 +167,12 @@ export function nextTickAt(program: Program, now: number): number | null {
     case "rotation":
       if (program.messages.length <= 1) return null;
       return boundary(now, Math.max(1, program.intervalSeconds) * 1000);
+    case "sequence": {
+      if (program.intervalSeconds === undefined || program.scenes.length <= 1) return null;
+      // Boundaries are anchored at advancedAt rather than the epoch, so a
+      // manual step holds for a full interval before auto-advance resumes.
+      const step = Math.max(1, program.intervalSeconds) * 1000;
+      return program.advancedAt + boundary(Math.max(0, now - program.advancedAt), step);
+    }
   }
 }

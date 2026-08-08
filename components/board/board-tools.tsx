@@ -7,7 +7,10 @@ import {
   Clock3,
   Copy,
   Dices,
+  ListVideo,
   Moon,
+  Play,
+  Plus,
   Presentation,
   RotateCw,
   Shuffle,
@@ -16,6 +19,7 @@ import {
   Trash2,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -40,6 +44,7 @@ const LIVE_LABEL: Record<Exclude<Program["kind"], "message">, string> = {
   clock: "Clock",
   countdown: "Countdown",
   rotation: "Preset rotation",
+  sequence: "Sequence",
 };
 
 const SIZE_OPTIONS: SegmentOption<BoardSizeKey>[] = [
@@ -67,6 +72,12 @@ interface BoardToolsProps {
   onActivateProgram: (program: Program) => void;
   /** Stop the live program, freezing the board on what it currently shows. */
   onStopProgram: () => void;
+  /** Saved sequence scenes, persisted so they survive reloads and replays. */
+  scenes: ActiveMessage[];
+  /** Capture the composer's current draft as a new scene. */
+  onAddScene: () => void;
+  canAddScene: boolean;
+  onRemoveScene: (index: number) => void;
 }
 
 /** Readable one-line label for a stored message (special bits become a box). */
@@ -102,6 +113,10 @@ export function BoardTools({
   program,
   onActivateProgram,
   onStopProgram,
+  scenes,
+  onAddScene,
+  canAddScene,
+  onRemoveScene,
 }: BoardToolsProps) {
   const [copied, setCopied] = useState(false);
   const copiedTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -109,6 +124,10 @@ export function BoardTools({
   const [countdownOpen, setCountdownOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [label, setLabel] = useState("");
+
+  const [sequenceOpen, setSequenceOpen] = useState(false);
+  /** Per-scene hold as entered; blank means manual (arrow-key) stepping only. */
+  const [holdSeconds, setHoldSeconds] = useState("");
 
   async function handleCopy() {
     const ok = await onCopyJson();
@@ -122,6 +141,18 @@ export function BoardTools({
     if (!target) return;
     onActivateProgram({ kind: "countdown", target, label: label.trim() || undefined });
     setCountdownOpen(false);
+  }
+
+  function playSequence() {
+    if (scenes.length === 0) return;
+    const seconds = Number.parseInt(holdSeconds, 10);
+    onActivateProgram({
+      kind: "sequence",
+      scenes,
+      index: 0,
+      advancedAt: Date.now(),
+      intervalSeconds: Number.isFinite(seconds) && seconds > 0 ? seconds : undefined,
+    });
   }
 
   return (
@@ -195,6 +226,17 @@ export function BoardTools({
           <RotateCw />
           Rotate presets
         </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className={GHOST}
+          aria-expanded={sequenceOpen}
+          onClick={() => setSequenceOpen(!sequenceOpen)}
+        >
+          <ListVideo />
+          Sequence
+        </Button>
 
         {program.kind !== "message" && (
           <span className="ml-auto flex items-center gap-2 text-xs text-white/60">
@@ -240,6 +282,63 @@ export function BoardTools({
             Start
           </Button>
         </form>
+      )}
+
+      {sequenceOpen && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={onAddScene}
+            disabled={!canAddScene}
+            className={GHOST}
+          >
+            <Plus />
+            Add scene
+          </Button>
+          {scenes.map((scene, index) => (
+            <span
+              key={`${scene.text}-${index}`}
+              title={scene.text}
+              className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 py-0.5 pr-0.5 pl-2.5 font-mono text-xs text-white/70"
+            >
+              <span className="max-w-[10rem] truncate">
+                {index + 1} {previewLabel(scene.text)}
+              </span>
+              <Button
+                type="button"
+                size="icon-xs"
+                variant="ghost"
+                aria-label={`Remove scene ${index + 1}`}
+                onClick={() => onRemoveScene(index)}
+                className="text-white/40 hover:bg-white/10 hover:text-white"
+              >
+                <X />
+              </Button>
+            </span>
+          ))}
+          {scenes.length > 0 && (
+            <>
+              <Input
+                type="number"
+                min={1}
+                aria-label="Seconds per scene (blank for manual stepping)"
+                placeholder="MANUAL"
+                value={holdSeconds}
+                onChange={(event) => setHoldSeconds(event.target.value)}
+                className={`${FIELD} w-24 font-mono`}
+              />
+              <Button type="button" size="sm" variant="ghost" onClick={playSequence} className={GHOST}>
+                <Play />
+                Play
+              </Button>
+              <span className="text-xs text-white/40">
+                Blank hold time steps with ← → in Present
+              </span>
+            </>
+          )}
+        </div>
       )}
 
       {/* Board settings and utilities */}

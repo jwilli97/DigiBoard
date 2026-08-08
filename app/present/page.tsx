@@ -12,7 +12,7 @@ import { useProgramMessage } from "@/components/board/use-program-message";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BOARD_SIZES, type BoardSizeKey, type BoardTheme } from "@/lib/board";
 import { layoutMessage } from "@/lib/layout";
-import { DEFAULT_PROGRAM, type Program } from "@/lib/programs";
+import { DEFAULT_PROGRAM, stepSequence, type Program } from "@/lib/programs";
 import { STORAGE_KEYS } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
@@ -98,7 +98,7 @@ function toggleFullscreen() {
  */
 export default function Present() {
   const router = useRouter();
-  const [program] = useLocalStorage<Program>(STORAGE_KEYS.program, DEFAULT_PROGRAM);
+  const [program, setProgram] = useLocalStorage<Program>(STORAGE_KEYS.program, DEFAULT_PROGRAM);
   const [sizeKey] = useLocalStorage<BoardSizeKey>(STORAGE_KEYS.size, "flagship");
   const [theme] = useLocalStorage<BoardTheme>(STORAGE_KEYS.theme, "light");
   const [soundOn] = useLocalStorage<boolean>(STORAGE_KEYS.sound, false);
@@ -142,10 +142,25 @@ export default function Present() {
         return;
       }
       if (event.key === "f" || event.key === "F") toggleFullscreen();
+      // Arrow keys step an active sequence. The step is written back to the
+      // shared program (re-anchored at now), so every tab flips together. The
+      // updater re-checks the kind against the stored value at call time.
+      const direction =
+        event.key === "ArrowRight" || event.key === "ArrowDown"
+          ? 1
+          : event.key === "ArrowLeft" || event.key === "ArrowUp"
+            ? -1
+            : null;
+      if (direction !== null) {
+        event.preventDefault();
+        setProgram((previous) =>
+          previous.kind === "sequence" ? stepSequence(previous, direction, Date.now()) : previous,
+        );
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [router]);
+  }, [router, setProgram]);
 
   return (
     <main
@@ -172,6 +187,12 @@ export default function Present() {
           idle ? "pointer-events-none opacity-0" : "opacity-100",
         )}
       >
+        {program.kind === "sequence" && (
+          <span className="px-2 text-sm text-white/50">
+            Scenes
+            <span className="ml-2 text-white/30">← →</span>
+          </span>
+        )}
         <Link
           href="/"
           className={buttonVariants({

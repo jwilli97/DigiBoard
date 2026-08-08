@@ -23,6 +23,7 @@ import { DEFAULT_PROGRAM, renderProgram, type Program } from "@/lib/programs";
 import { STORAGE_KEYS } from "@/lib/storage";
 
 const EMPTY_HISTORY: ActiveMessage[] = [];
+const EMPTY_SCENES: ActiveMessage[] = [];
 const HISTORY_LIMIT = 8;
 
 export default function Home() {
@@ -40,6 +41,9 @@ export default function Home() {
     EMPTY_HISTORY,
   );
   const [soundOn, setSoundOn] = useLocalStorage<boolean>(STORAGE_KEYS.sound, false);
+  // Sequence scenes persist separately from the active program so the list
+  // stays editable between plays (a running sequence holds its own copy).
+  const [scenes, setScenes] = useLocalStorage<ActiveMessage[]>(STORAGE_KEYS.scenes, EMPTY_SCENES);
   const [theme, setTheme] = useLocalStorage<BoardTheme>(STORAGE_KEYS.theme, "light");
 
   const size = BOARD_SIZES[sizeKey];
@@ -109,6 +113,11 @@ export default function Home() {
     );
   }
 
+  function addScene() {
+    if (!draft.trim()) return;
+    setScenes((previous) => [...previous, { text: draft, align, blockAlign, vAlign }]);
+  }
+
   async function copyJson(): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(JSON.stringify(board, null, 2));
@@ -156,6 +165,10 @@ export default function Home() {
           program={program}
           onActivateProgram={setProgram}
           onStopProgram={stopProgram}
+          scenes={scenes}
+          onAddScene={addScene}
+          canAddScene={draft.trim().length > 0}
+          onRemoveScene={(index) => setScenes((previous) => previous.filter((_, i) => i !== index))}
         />
       </main>
     </div>

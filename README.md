@@ -12,6 +12,7 @@ A digital split-flap message board inspired by [Vestaboard](https://www.vestaboa
 - **Composer** — draft messages with line/block/vertical alignment, color chips, symbols, and blank bits; the board only changes when you activate.
 - **Split-flap animation** — each changed cell rolls through intermediate glyphs with a diagonal stagger; adjacent-glyph changes (a clock ticking over) advance with a single flap. Respects reduced motion.
 - **Live programs** — clock, countdown, and preset rotation, rendered as pure functions of time so every tab shows the same thing at the same moment.
+- **Sequences** — save composer drafts as scenes, then play them on a timer, step through them with the arrow keys in presentation mode, or both (a manual step re-anchors the timer).
 - **Presentation mode** — `/present` shows just the board scaled to the viewport, holds a screen wake lock, auto-hides chrome, and mirrors whatever the composer tab activates (state syncs via localStorage).
 - **Extras** — presets, message history, shuffle test, copy-as-JSON, synthesized mechanical sound (no audio assets).
 
@@ -37,6 +38,7 @@ pnpm build       # production build
 
 - `Enter` activates the current draft; `Shift+Enter` inserts a newline.
 - `F` toggles fullscreen in presentation mode.
+- Arrow keys step through an active sequence in presentation mode.
 - `Esc` exits fullscreen first, then returns to the composer.
 
 ## Structure

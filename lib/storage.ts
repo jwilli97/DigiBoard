@@ -14,4 +14,6 @@ export const STORAGE_KEYS = {
   sound: "digiboard:sound",
   /** Recent messages (ActiveMessage[]). */
   history: "digiboard:history",
+  /** Saved sequence scenes (ActiveMessage[]), kept for editing between plays. */
+  scenes: "digiboard:scenes",
 } as const;
